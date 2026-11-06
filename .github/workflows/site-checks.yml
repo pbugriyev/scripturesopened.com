@@ -1,0 +1,11 @@
+name: Site checks
+on:
+  pull_request:
+  push:
+jobs:
+  resources:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check resources product cards
+        run: python3 -m unittest discover -s tests -v
