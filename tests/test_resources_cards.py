@@ -1,9 +1,8 @@
 """Checks for the resources page product cards.
 
-Four original packs only: Judges, Luke, Acts, and Advent. The Luke expository
-sermon studies and the commented Luke sermon companion are unpublished while
-those packets are revised, so neither their cards nor their preview images
-may appear anywhere the site can serve.
+Four original packs, then the eleven revised Luke expository sermon studies.
+Held and unapproved passages, and the sermon companion, stay off the site.
+Previews are small JPEGs only.
 """
 
 from __future__ import annotations
@@ -85,19 +84,8 @@ PACKS = [
     },
 ]
 
-# Etsy listing ids for the withdrawn Luke sermon studies.
-WITHDRAWN_LISTING_IDS = (
-    "4610989529",
-    "4610990713",
-    "4610991435",
-    "4611406665",
-    "4611426808",
-    "4611410373",
-    "4611412571",
-    "4611431830",
-    "4611433106",
-    "4611418001",
-    "4611419309",
+# Still unpublished: held Luke 2:22–40, the later passages, and the companion.
+EXCLUDED_LISTING_IDS = (
     "4611438882",
     "4611430379",
     "4611450638",
@@ -105,35 +93,86 @@ WITHDRAWN_LISTING_IDS = (
     "4609536948",
 )
 
-WITHDRAWN_NEEDLES = (
-    "luke_sermon",
+EXCLUDED_NEEDLES = (
     "luke_companion",
-    "Expository Sermon",
     "Sermon Companion",
     "ETSY_URL_HERE",
-    "Luke 1:1–4",
-    "Luke 1:1-4",
-    "Luke 1:5–25",
-    "Luke 1:26–38",
-    "Luke 1:39–45",
-    "Luke 1:46–56",
-    "Luke 1:57–66",
-    "Luke 1:67–75",
-    "Luke 1:76–80",
-    "Luke 2:1–7",
-    "Luke 2:8–14",
-    "Luke 2:15–21",
     "Luke 2:22",
     "Luke 2:33",
-    "Luke 2:41–52",
-    "Luke 3:1–20",
-    "Luke 3:21–22",
-    "Luke 3:23–38",
+    "Luke 2:41",
+    "Luke 3:1",
+    "Luke 3:21",
+    "Luke 3:23",
+    "Helm",
+    "Chapell",
+    "Crossway",
+    "Berean",
 )
+
+# ref, display, pages, topic, etsy url. Page counts and URLs come from the approved map.
+SERMONS = [
+    ("1_1-4", "Luke 1:1–4", 34, "the dedication to Theophilus", "https://www.etsy.com/listing/4610989529/luke-11-4-expository-sermon-study-pdf"),
+    ("1_5-25", "Luke 1:5–25", 58, "the birth of John the Baptist foretold", "https://www.etsy.com/listing/4610990713/luke-15-25-expository-sermon-study-pdf"),
+    ("1_26-38", "Luke 1:26–38", 49, "the birth of Jesus foretold", "https://www.etsy.com/listing/4610991435/luke-126-38-expository-sermon-study-pdf"),
+    ("1_39-45", "Luke 1:39–45", 39, "Mary’s visit to Elizabeth", "https://www.etsy.com/listing/4611406665/luke-139-45-expository-sermon-study-pdf"),
+    ("1_46-56", "Luke 1:46–56", 43, "Mary’s song of praise, the Magnificat", "https://www.etsy.com/listing/4611426808/luke-146-56-expository-sermon-study-pdf"),
+    ("1_57-66", "Luke 1:57–66", 41, "the naming of John", "https://www.etsy.com/listing/4611410373/luke-157-66-expository-sermon-study-pdf"),
+    ("1_67-75", "Luke 1:67–75", 38, "Zechariah’s song", "https://www.etsy.com/listing/4611412571/luke-167-75-expository-sermon-study-pdf"),
+    ("1_76-80", "Luke 1:76–80", 37, "the dawn from on high", "https://www.etsy.com/listing/4611431830/luke-176-80-expository-sermon-study-pdf"),
+    ("2_1-7", "Luke 2:1–7", 37, "the birth of Jesus Christ", "https://www.etsy.com/listing/4611433106/luke-21-7-expository-sermon-study-pdf"),
+    ("2_8-14", "Luke 2:8–14", 38, "the shepherds and the angels", "https://www.etsy.com/listing/4611418001/luke-28-14-expository-sermon-study-pdf"),
+    ("2_15-21", "Luke 2:15–21", 39, "going to see, tell, and treasure what God has done", "https://www.etsy.com/listing/4611419309/luke-215-21-expository-sermon-study-pdf"),
+]
+
+
+def sermon_blurb(pages: int, topic: str) -> str:
+    return (
+        f"A {pages}-page expository sermon study of {topic}. "
+        "It follows Luke’s flow of thought through the Greek text "
+        "and gives a ready-to-use outline with application grounded in the passage."
+    )
+
+
+def sermon_images(ref: str, display: str, pages: int) -> list[tuple[str, str]]:
+    base = f"assets/products/luke_sermon_{ref}"
+    title = f"{display} Expository Sermon Study"
+    return [
+        (f"{base}.jpg", f"Partial title-page preview of the {pages}-page {title}"),
+        (f"{base}_s1.jpg", f"Partial preview of the {display} sermon study: bracket discourse diagram"),
+        (f"{base}_s2.jpg", f"Partial preview of the {display} sermon study: passage focus and application"),
+        (f"{base}_s3.jpg", f"Partial preview of the {display} sermon study: sermon outline"),
+    ]
 
 
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def jpeg_size(data: bytes) -> tuple[int, int]:
+    if data[:2] != b"\xff\xd8":
+        raise AssertionError("not a JPEG")
+    i = 2
+    while i < len(data) - 8:
+        if data[i] != 0xFF:
+            i += 1
+            continue
+        while i < len(data) and data[i] == 0xFF:
+            i += 1
+        if i >= len(data):
+            break
+        marker = data[i]
+        i += 1
+        if marker in (0xD8, 0xD9) or marker == 0x01 or 0xD0 <= marker <= 0xD7:
+            continue
+        if i + 2 > len(data):
+            break
+        seglen = int.from_bytes(data[i : i + 2], "big")
+        if marker in (0xC0, 0xC1, 0xC2) and i + 7 <= len(data):
+            height = int.from_bytes(data[i + 3 : i + 5], "big")
+            width = int.from_bytes(data[i + 5 : i + 7], "big")
+            return width, height
+        i += seglen
+    raise AssertionError("JPEG has no size marker")
 
 
 def site_text_files() -> list[Path]:
@@ -209,47 +248,66 @@ class ResourcesCardTests(unittest.TestCase):
         parser.feed(cls.html)
         cls.products = parser.products
 
-    def test_four_original_packs_in_order(self) -> None:
-        self.assertEqual(len(self.products), 4)
-        self.assertEqual([card["title"] for card in self.products], [pack["title"] for pack in PACKS])
-        for got, expected in zip(self.products, PACKS):
+    def test_fifteen_cards_packs_then_eleven_sermons(self) -> None:
+        self.assertEqual(len(self.products), 15)
+        self.assertEqual(len(PACKS) + len(SERMONS), 15)
+        for got, expected in zip(self.products[:4], PACKS):
             self.assertEqual(got["title"], expected["title"])
             self.assertEqual(got["blurbs"], [expected["blurb"]])
             self.assertEqual(got["href"], expected["href"])
             self.assertEqual(got["button"], "Buy on Etsy")
             self.assertEqual(got["imgs"], expected["images"])
             self.assertRegex(got["price"], PRICE_RE)
-            for src, _alt in got["imgs"]:
+        for got, sermon in zip(self.products[4:], SERMONS):
+            ref, display, pages, topic, href = sermon
+            self.assertEqual(got["title"], f"{display} Expository Sermon Study")
+            self.assertEqual(got["blurbs"], [sermon_blurb(pages, topic)])
+            self.assertEqual(got["href"], href)
+            self.assertEqual(got["price"], "$4.99")
+            self.assertEqual(got["button"], "Buy on Etsy")
+            self.assertEqual(got["imgs"], sermon_images(ref, display, pages))
+            for src, alt in got["imgs"]:
+                self.assertTrue(alt.strip(), src)
+                self.assertFalse(src.lower().endswith(".pdf"))
                 self.assertTrue((ROOT / src).is_file(), src)
 
-    def test_prices_stay_editable_display_amounts(self) -> None:
-        amounts = [card["price"] for card in self.products]
-        self.assertEqual(len(amounts), 4)
-        for amount in amounts:
-            self.assertRegex(amount, PRICE_RE)
-
-    def test_sermon_studies_and_companion_are_absent(self) -> None:
+    def test_excluded_passages_and_companion_stay_off_the_site(self) -> None:
         self.assertNotIn("<!--", self.html)
         self.assertNotIn("-->", self.html)
         for path in site_text_files():
             text = path.read_text(encoding="utf-8", errors="replace")
-            for needle in WITHDRAWN_NEEDLES + WITHDRAWN_LISTING_IDS:
+            for needle in EXCLUDED_NEEDLES + EXCLUDED_LISTING_IDS:
                 self.assertNotIn(needle, text, f"{needle} in {path.relative_to(ROOT)}")
         leftovers = [
-            path.relative_to(ROOT).as_posix()
-            for path in ROOT.rglob("*")
-            if path.is_file()
-            and ".git" not in path.parts
-            and ("luke_sermon" in path.name or "luke_companion" in path.name)
+            path.name
+            for path in (ROOT / "assets" / "products").glob("*")
+            if "luke_companion" in path.name or "luke_sermon_2_22" in path.name or "luke_sermon_2_33" in path.name or "luke_sermon_2_41" in path.name or "luke_sermon_3_" in path.name
         ]
         self.assertEqual(leftovers, [])
 
     def test_original_pack_bytes_are_unchanged(self) -> None:
         products = ROOT / "assets" / "products"
         on_disk = sorted(path.name for path in products.iterdir() if path.is_file())
-        self.assertEqual(on_disk, sorted(Path(rel).name for rel in UNCHANGED_SHA256))
+        sermon_names = sorted(f"luke_sermon_{ref}{suffix}.jpg" for ref, *_ in SERMONS for suffix in ("", "_s1", "_s2", "_s3"))
+        expected = sorted([Path(rel).name for rel in UNCHANGED_SHA256] + sermon_names)
+        self.assertEqual(on_disk, expected)
+        self.assertEqual(len(sermon_names), 44)
         for rel, digest in UNCHANGED_SHA256.items():
             self.assertEqual(sha256(ROOT / rel), digest, rel)
+
+    def test_sermon_previews_are_small_jpegs(self) -> None:
+        for ref, *_ in SERMONS:
+            for suffix in ("", "_s1", "_s2", "_s3"):
+                path = ROOT / "assets" / "products" / f"luke_sermon_{ref}{suffix}.jpg"
+                data = path.read_bytes()
+                self.assertLess(len(data), 100_000, path.name)
+                self.assertEqual(jpeg_size(data), (600, 600), path.name)
+        oversized = [
+            path.relative_to(ROOT).as_posix()
+            for path in ROOT.rglob("*")
+            if path.is_file() and ".git" not in path.parts and path.stat().st_size > 100_000 and path.name != "arch.png"
+        ]
+        self.assertEqual(oversized, [])
 
     def test_no_pdf_or_file_host_links_anywhere_in_the_site(self) -> None:
         pdfs = [path for path in ROOT.rglob("*") if path.is_file() and path.suffix.lower() == ".pdf" and ".git" not in path.parts]
