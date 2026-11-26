@@ -1,8 +1,9 @@
 """Checks for the resources page product cards.
 
-Four original packs, then the eleven revised Luke expository sermon studies.
-Held and unapproved passages, and the sermon companion, stay off the site.
-Previews are small JPEGs only.
+Four original packs, then eight Chapter 1 Luke expository sermon studies.
+Chapter 2, later passages, and the sermon companion stay off the site.
+Previews are small JPEGs only. YouTube videos are described as free;
+printable packets are described as paid.
 """
 
 from __future__ import annotations
@@ -86,6 +87,9 @@ PACKS = [
 
 # Still unpublished: held Luke 2:22–40, the later passages, and the companion.
 EXCLUDED_LISTING_IDS = (
+    "4611433106",
+    "4611418001",
+    "4611419309",
     "4611438882",
     "4611430379",
     "4611450638",
@@ -95,14 +99,11 @@ EXCLUDED_LISTING_IDS = (
 
 EXCLUDED_NEEDLES = (
     "luke_companion",
+    "luke_sermon_2_",
     "Sermon Companion",
     "ETSY_URL_HERE",
-    "Luke 2:22",
-    "Luke 2:33",
-    "Luke 2:41",
-    "Luke 3:1",
-    "Luke 3:21",
-    "Luke 3:23",
+    "Luke 2:",
+    "Luke 3:",
     "Helm",
     "Chapell",
     "Crossway",
@@ -111,17 +112,14 @@ EXCLUDED_NEEDLES = (
 
 # ref, display, pages, topic, etsy url. Page counts and URLs come from the approved map.
 SERMONS = [
-    ("1_1-4", "Luke 1:1–4", 34, "the dedication to Theophilus", "https://www.etsy.com/listing/4610989529/luke-11-4-expository-sermon-study-pdf"),
-    ("1_5-25", "Luke 1:5–25", 58, "the birth of John the Baptist foretold", "https://www.etsy.com/listing/4610990713/luke-15-25-expository-sermon-study-pdf"),
+    ("1_1-4", "Luke 1:1–4", 35, "the dedication to Theophilus", "https://www.etsy.com/listing/4610989529/luke-11-4-expository-sermon-study-pdf"),
+    ("1_5-25", "Luke 1:5–25", 59, "the birth of John the Baptist foretold", "https://www.etsy.com/listing/4610990713/luke-15-25-expository-sermon-study-pdf"),
     ("1_26-38", "Luke 1:26–38", 49, "the birth of Jesus foretold", "https://www.etsy.com/listing/4610991435/luke-126-38-expository-sermon-study-pdf"),
     ("1_39-45", "Luke 1:39–45", 39, "Mary’s visit to Elizabeth", "https://www.etsy.com/listing/4611406665/luke-139-45-expository-sermon-study-pdf"),
     ("1_46-56", "Luke 1:46–56", 43, "Mary’s song of praise, the Magnificat", "https://www.etsy.com/listing/4611426808/luke-146-56-expository-sermon-study-pdf"),
     ("1_57-66", "Luke 1:57–66", 41, "the naming of John", "https://www.etsy.com/listing/4611410373/luke-157-66-expository-sermon-study-pdf"),
     ("1_67-75", "Luke 1:67–75", 38, "Zechariah’s song", "https://www.etsy.com/listing/4611412571/luke-167-75-expository-sermon-study-pdf"),
-    ("1_76-80", "Luke 1:76–80", 37, "the dawn from on high", "https://www.etsy.com/listing/4611431830/luke-176-80-expository-sermon-study-pdf"),
-    ("2_1-7", "Luke 2:1–7", 37, "the birth of Jesus Christ", "https://www.etsy.com/listing/4611433106/luke-21-7-expository-sermon-study-pdf"),
-    ("2_8-14", "Luke 2:8–14", 38, "the shepherds and the angels", "https://www.etsy.com/listing/4611418001/luke-28-14-expository-sermon-study-pdf"),
-    ("2_15-21", "Luke 2:15–21", 39, "going to see, tell, and treasure what God has done", "https://www.etsy.com/listing/4611419309/luke-215-21-expository-sermon-study-pdf"),
+    ("1_76-80", "Luke 1:76–80", 38, "the dawn from on high", "https://www.etsy.com/listing/4611431830/luke-176-80-expository-sermon-study-pdf"),
 ]
 
 
@@ -248,9 +246,10 @@ class ResourcesCardTests(unittest.TestCase):
         parser.feed(cls.html)
         cls.products = parser.products
 
-    def test_fifteen_cards_packs_then_eleven_sermons(self) -> None:
-        self.assertEqual(len(self.products), 15)
-        self.assertEqual(len(PACKS) + len(SERMONS), 15)
+    def test_twelve_cards_packs_then_eight_chapter_one_sermons(self) -> None:
+        self.assertEqual(len(SERMONS), 8)
+        self.assertEqual(len(self.products), 12)
+        self.assertEqual(len(PACKS) + len(SERMONS), 12)
         for got, expected in zip(self.products[:4], PACKS):
             self.assertEqual(got["title"], expected["title"])
             self.assertEqual(got["blurbs"], [expected["blurb"]])
@@ -291,7 +290,7 @@ class ResourcesCardTests(unittest.TestCase):
         sermon_names = sorted(f"luke_sermon_{ref}{suffix}.jpg" for ref, *_ in SERMONS for suffix in ("", "_s1", "_s2", "_s3"))
         expected = sorted([Path(rel).name for rel in UNCHANGED_SHA256] + sermon_names)
         self.assertEqual(on_disk, expected)
-        self.assertEqual(len(sermon_names), 44)
+        self.assertEqual(len(sermon_names), 32)
         for rel, digest in UNCHANGED_SHA256.items():
             self.assertEqual(sha256(ROOT / rel), digest, rel)
 
@@ -335,6 +334,47 @@ class ResourcesCardTests(unittest.TestCase):
                     "https://fonts.gstatic.com",
                 )
                 self.assertTrue(url.startswith(allowed), url)
+
+    def test_packets_are_not_described_as_free(self) -> None:
+        ambiguous = re.compile(
+            r"\bfree\b[^.!?]{0,160}\b(?:resources|studies|packets)\b"
+            r"|\b(?:resources|studies|packets)\b[^.!?]{0,160}\bfree\b",
+            re.IGNORECASE,
+        )
+        for path in ROOT.rglob("*"):
+            if not path.is_file() or ".git" in path.parts:
+                continue
+            if path.suffix.lower() not in {".html", ".css", ".txt", ".xml", ".md", ".yml", ".yaml"}:
+                continue
+            raw = path.read_text(encoding="utf-8", errors="replace")
+            text = re.sub(r"</(p|h1|h2|h3|a|li|div|title|article)>", ". ", raw, flags=re.IGNORECASE)
+            text = re.sub(r"<[^>]+>", " ", text)
+            text = re.sub(r"&[a-z]+;", " ", text, flags=re.IGNORECASE)
+            match = ambiguous.search(text)
+            self.assertIsNone(match, f"{path.relative_to(ROOT)}: {match.group(0) if match else ''}")
+
+    def test_sitemap_lists_live_pages_only(self) -> None:
+        robots = (ROOT / "robots.txt").read_text(encoding="utf-8")
+        self.assertEqual(
+            robots,
+            "User-agent: *\nAllow: /\n\nSitemap: https://scripturesopened.com/sitemap.xml\n",
+        )
+        xml = (ROOT / "sitemap.xml").read_text(encoding="utf-8")
+        self.assertIn('xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"', xml)
+        locs = re.findall(r"<loc>([^<]+)</loc>", xml)
+        lastmods = re.findall(r"<lastmod>([^<]+)</lastmod>", xml)
+        self.assertEqual(
+            locs,
+            [
+                "https://scripturesopened.com/",
+                "https://scripturesopened.com/resources.html",
+                "https://scripturesopened.com/videos.html",
+                "https://scripturesopened.com/support.html",
+                "https://scripturesopened.com/about.html",
+            ],
+        )
+        self.assertEqual(lastmods, ["2026-11-25"] * 5)
+        self.assertNotIn("404", xml)
 
     def test_gold_arch_branding_and_shop_link_remain(self) -> None:
         css = (ROOT / "styles.css").read_text(encoding="utf-8")
