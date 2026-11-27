@@ -1,7 +1,7 @@
 """Checks for the resources page product cards.
 
-Four original packs, then eight Chapter 1 Luke expository sermon studies.
-Chapter 2, later passages, and the sermon companion stay off the site.
+Four original packs, then eight Chapter 1 and four Chapter 2 Luke sermon studies.
+Later passages and the sermon companion stay off the site.
 Previews are small JPEGs only. YouTube videos are described as free;
 printable packets are described as paid.
 """
@@ -85,11 +85,8 @@ PACKS = [
     },
 ]
 
-# Still unpublished: held Luke 2:22–40, the later passages, and the companion.
+# Still unpublished: passages after Luke 2:22–40, and the companion.
 EXCLUDED_LISTING_IDS = (
-    "4611433106",
-    "4611418001",
-    "4611419309",
     "4611438882",
     "4611430379",
     "4611450638",
@@ -99,10 +96,11 @@ EXCLUDED_LISTING_IDS = (
 
 EXCLUDED_NEEDLES = (
     "luke_companion",
-    "luke_sermon_2_",
+    "luke_sermon_2_41",
+    "luke_sermon_3_",
     "Sermon Companion",
     "ETSY_URL_HERE",
-    "Luke 2:",
+    "Luke 2:41",
     "Luke 3:",
     "Helm",
     "Chapell",
@@ -120,6 +118,10 @@ SERMONS = [
     ("1_57-66", "Luke 1:57–66", 41, "the naming of John", "https://www.etsy.com/listing/4611410373/luke-157-66-expository-sermon-study-pdf"),
     ("1_67-75", "Luke 1:67–75", 38, "Zechariah’s song", "https://www.etsy.com/listing/4611412571/luke-167-75-expository-sermon-study-pdf"),
     ("1_76-80", "Luke 1:76–80", 38, "the dawn from on high", "https://www.etsy.com/listing/4611431830/luke-176-80-expository-sermon-study-pdf"),
+    ("2_1-7", "Luke 2:1–7", 38, "the birth of Jesus Christ", "https://www.etsy.com/listing/4611433106/luke-21-7-expository-sermon-study-pdf"),
+    ("2_8-14", "Luke 2:8–14", 38, "the shepherds and the angels", "https://www.etsy.com/listing/4611418001/luke-28-14-expository-sermon-study-pdf"),
+    ("2_15-21", "Luke 2:15–21", 39, "going to see, tell, and treasure", "https://www.etsy.com/listing/4611419309/luke-215-21-expository-sermon-study-pdf"),
+    ("2_22-40", "Luke 2:22–40", 48, "Jesus presented at the temple", "https://www.etsy.com/listing/4626521345/luke-222-40-expository-sermon-study-pdf"),
 ]
 
 
@@ -246,10 +248,10 @@ class ResourcesCardTests(unittest.TestCase):
         parser.feed(cls.html)
         cls.products = parser.products
 
-    def test_twelve_cards_packs_then_eight_chapter_one_sermons(self) -> None:
-        self.assertEqual(len(SERMONS), 8)
-        self.assertEqual(len(self.products), 12)
-        self.assertEqual(len(PACKS) + len(SERMONS), 12)
+    def test_sixteen_cards_packs_then_chapter_one_and_two(self) -> None:
+        self.assertEqual(len(SERMONS), 12)
+        self.assertEqual(len(self.products), 16)
+        self.assertEqual(len(PACKS) + len(SERMONS), 16)
         for got, expected in zip(self.products[:4], PACKS):
             self.assertEqual(got["title"], expected["title"])
             self.assertEqual(got["blurbs"], [expected["blurb"]])
@@ -280,7 +282,7 @@ class ResourcesCardTests(unittest.TestCase):
         leftovers = [
             path.name
             for path in (ROOT / "assets" / "products").glob("*")
-            if "luke_companion" in path.name or "luke_sermon_2_22" in path.name or "luke_sermon_2_33" in path.name or "luke_sermon_2_41" in path.name or "luke_sermon_3_" in path.name
+            if "luke_companion" in path.name or "luke_sermon_2_41" in path.name or "luke_sermon_2_33" in path.name or "luke_sermon_3_" in path.name
         ]
         self.assertEqual(leftovers, [])
 
@@ -290,7 +292,7 @@ class ResourcesCardTests(unittest.TestCase):
         sermon_names = sorted(f"luke_sermon_{ref}{suffix}.jpg" for ref, *_ in SERMONS for suffix in ("", "_s1", "_s2", "_s3"))
         expected = sorted([Path(rel).name for rel in UNCHANGED_SHA256] + sermon_names)
         self.assertEqual(on_disk, expected)
-        self.assertEqual(len(sermon_names), 32)
+        self.assertEqual(len(sermon_names), 48)
         for rel, digest in UNCHANGED_SHA256.items():
             self.assertEqual(sha256(ROOT / rel), digest, rel)
 
@@ -373,7 +375,10 @@ class ResourcesCardTests(unittest.TestCase):
                 "https://scripturesopened.com/about.html",
             ],
         )
-        self.assertEqual(lastmods, ["2026-11-25"] * 5)
+        self.assertEqual(
+            lastmods,
+            ["2026-11-25", "2026-11-26", "2026-11-25", "2026-11-25", "2026-11-25"],
+        )
         self.assertNotIn("404", xml)
 
     def test_gold_arch_branding_and_shop_link_remain(self) -> None:
