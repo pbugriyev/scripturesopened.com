@@ -1,7 +1,7 @@
 """Checks for the resources page product cards.
 
-Four original packs, then eight Chapter 1 and four Chapter 2 Luke sermon studies.
-Later passages and the sermon companion stay off the site.
+Four original packs, then eight Chapter 1 and five Chapter 2 Luke sermon studies.
+Chapter 3 and the sermon companion stay off the site.
 Previews are small JPEGs only. YouTube videos are described as free;
 printable packets are described as paid.
 """
@@ -85,9 +85,8 @@ PACKS = [
     },
 ]
 
-# Still unpublished: passages after Luke 2:22–40, and the companion.
+# Still unpublished: Chapter 3 and the companion.
 EXCLUDED_LISTING_IDS = (
-    "4611438882",
     "4611430379",
     "4611450638",
     "4611433847",
@@ -96,11 +95,9 @@ EXCLUDED_LISTING_IDS = (
 
 EXCLUDED_NEEDLES = (
     "luke_companion",
-    "luke_sermon_2_41",
     "luke_sermon_3_",
     "Sermon Companion",
     "ETSY_URL_HERE",
-    "Luke 2:41",
     "Luke 3:",
     "Helm",
     "Chapell",
@@ -122,6 +119,7 @@ SERMONS = [
     ("2_8-14", "Luke 2:8–14", 38, "the shepherds and the angels", "https://www.etsy.com/listing/4611418001/luke-28-14-expository-sermon-study-pdf"),
     ("2_15-21", "Luke 2:15–21", 39, "going to see, tell, and treasure", "https://www.etsy.com/listing/4611419309/luke-215-21-expository-sermon-study-pdf"),
     ("2_22-40", "Luke 2:22–40", 48, "Jesus presented at the temple", "https://www.etsy.com/listing/4626521345/luke-222-40-expository-sermon-study-pdf"),
+    ("2_41-52", "Luke 2:41–52", 46, "the boy Jesus in the temple", "https://www.etsy.com/listing/4611438882/luke-241-52-expository-sermon-study-pdf"),
 ]
 
 
@@ -248,10 +246,10 @@ class ResourcesCardTests(unittest.TestCase):
         parser.feed(cls.html)
         cls.products = parser.products
 
-    def test_sixteen_cards_packs_then_chapter_one_and_two(self) -> None:
-        self.assertEqual(len(SERMONS), 12)
-        self.assertEqual(len(self.products), 16)
-        self.assertEqual(len(PACKS) + len(SERMONS), 16)
+    def test_seventeen_cards_including_luke_2_41_52(self) -> None:
+        self.assertEqual(len(SERMONS), 13)
+        self.assertEqual(len(self.products), 17)
+        self.assertEqual(len(PACKS) + len(SERMONS), 17)
         for got, expected in zip(self.products[:4], PACKS):
             self.assertEqual(got["title"], expected["title"])
             self.assertEqual(got["blurbs"], [expected["blurb"]])
@@ -282,7 +280,7 @@ class ResourcesCardTests(unittest.TestCase):
         leftovers = [
             path.name
             for path in (ROOT / "assets" / "products").glob("*")
-            if "luke_companion" in path.name or "luke_sermon_2_41" in path.name or "luke_sermon_2_33" in path.name or "luke_sermon_3_" in path.name
+            if "luke_companion" in path.name or "luke_sermon_2_33" in path.name or "luke_sermon_3_" in path.name
         ]
         self.assertEqual(leftovers, [])
 
@@ -292,7 +290,7 @@ class ResourcesCardTests(unittest.TestCase):
         sermon_names = sorted(f"luke_sermon_{ref}{suffix}.jpg" for ref, *_ in SERMONS for suffix in ("", "_s1", "_s2", "_s3"))
         expected = sorted([Path(rel).name for rel in UNCHANGED_SHA256] + sermon_names)
         self.assertEqual(on_disk, expected)
-        self.assertEqual(len(sermon_names), 48)
+        self.assertEqual(len(sermon_names), 52)
         for rel, digest in UNCHANGED_SHA256.items():
             self.assertEqual(sha256(ROOT / rel), digest, rel)
 
